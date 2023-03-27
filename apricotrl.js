@@ -108,7 +108,7 @@ const controls = () => {
             pickApricot();
         }
         if (keys["g"]) {
-            getFloorObject();
+            getFloorItem();
         }
         if (keys["d"]) {
             dropItem(apricot);
@@ -173,18 +173,15 @@ function useFloorObject() {
         
     }
 }
-function getFloorObject() { //currently just picks apricot to add to stash, need to fix that once more items are implemented
-    for (let index = 0; index < scenePlants.length; index++) {
-        const item = scenePlants[index];
-        if (item.x == zach.x && item.y == zach.y && item.ripeness == 1) {
-            zach.apricotStash += 1;
-            item.sprite = APRICOTPLANTBARE;
-            item.ripeness = -1;
-            incrementTimer=true;
+function getFloorItem() {
+    for (let index = 0; index < sceneItems.length; index++) {
+        const floorItem = sceneItems[index];
+        if (floorItem.x == zach.x && floorItem.y == zach.y) {
+
         }
-        
     }
 }
+
 //we'll look at this again later, not super happy with how it works
 //lazily having this as seperate function, to make it part of picking up floor items just have it check plant array for a tree at current location with case statement or some shit
 const pickApricot = () => {
@@ -205,11 +202,7 @@ const pickApricot = () => {
 }
 
 function eatHeldApricot() {
-    if (zach.apricotStash > 0 && zach.alive) {
-        zach.apricotStash -= 1;
-        zach.hunger += 11;
-        incrementTimer=true;
-    }
+
 }
 function dropItem(item) {
     for (let index = 0; index < playerItems.length; index++) {
@@ -221,7 +214,6 @@ function dropItem(item) {
             droppedItem.quantity = 1;
             sceneItems.push(droppedItem);
             playerItems[index].quantity -= 1;
-            console.log(playerItem.quantity);
             if (playerItem.quantity < 1) {
                 playerItems.splice(index, 1);
             }
