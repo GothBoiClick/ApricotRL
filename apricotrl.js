@@ -1,60 +1,125 @@
-//used for canvas AND calculations
+//base canvas shit
+const canvas = document.getElementById("apricotrl");
+const ctx = canvas.getContext("2d");
+//constants feed into grid calculations and canvas
 const WIDTH = 40;
 const HEIGHT = 24;
 const SCENEWIDTH = WIDTH*16;
 const SCENEHEIGHT = HEIGHT*16;
-//usual canvas shit
-const canvas = document.getElementById("apricotrl");
 canvas.width = SCENEWIDTH;
 canvas.height = SCENEHEIGHT;
-const ctx = canvas.getContext("2d");
-//sprite aliases
-const ZACHFACE = createImage("/apricotrl/tiles/Characters/zach.png", 16);
-const WALL = createImage("/apricotrl/tiles/Objects/shittywall.png", 16);
-const UNRIPEAPRICOT = createImage("/apricotrl/tiles/Objects/apricot_1.png", 16)
-const RIPEAPRICOT = createImage("/apricotrl/tiles/Objects/apricot_2.png", 16)
-const ROTTENAPRICOT = createImage("/apricotrl/tiles/Objects/apricot_3.png", 16)
-const TOMBSTONE = createImage("/apricotrl/tiles/Objects/tombstone.png", 16)
-const APRICOTPLANTBARE = createImage("/apricotrl/tiles/Objects/apricottree1.png", 16) //TODO: need to make actual sprite for this
-const APRICOTPLANTUNRIPE = createImage("/apricotrl/tiles/Objects/apricottree1.png", 16)
-const APRICOTPLANTRIPE = createImage("/apricotrl/tiles/Objects/apricottree2.png", 16)
-const APRICOTPLANTROTTEN = createImage("/apricotrl/tiles/Objects/apricottree3.png", 16)
-//initializing variables
-let cooldown;
-let currentTime = 0;
-//arrays
-let keys = []; //keeps track of currently pressed keys
+//rendering function
+//arrays needed for it first
 let sceneItems = [];
 let scenePlants = [];
 let scenePlayer = [];
-let sceneWalls = []; 
-function createImage(url, size) {
-    let image = new Image(size, size);
-    image.src = url;
-    return image;
-}
-function drawOnGrid(obj) {
-    ctx.drawImage(obj.sprite, obj.x * 16, obj.y * 16);
-}
-function drawBG(){
+let sceneWalls = [];
+//not sure were to put this yet, but since it's in array I'll just do with the others
+let playerItems = [];
+const render = () => {
+    const drawSprites = array =>{
+        for (let index = 0; index < array.length; index++) {
+            const object = array[index];
+            ctx.drawImage(object.sprite, object.x * 16, object.y * 16);
+        
+        }
+    }
     ctx.fillStyle="black";
     ctx.fillRect(0, 0, SCENEWIDTH, SCENEHEIGHT);
-}
-function drawSprites(array){
-    for (let index = 0; index < array.length; index++) {
-        const object = array[index];
-        drawOnGrid(object);
-        
-    }
-}
-function render(){
-    drawBG();
     //order here matters for what gets drawn on top of what etc
     drawSprites(scenePlants);
+    drawSprites(sceneItems);
     drawSprites(scenePlayer);
     drawSprites(sceneWalls);
     
 }
+//sprite aliases
+const createImage = (url, size) => {
+    let image = new Image(size, size);
+    image.src = url;
+    return image;
+}
+const ZACHFACE = createImage("/apricotrl/tiles/zach.png", 16);
+const WALL = createImage("/apricotrl/tiles/shittywall.png", 16);
+const UNRIPEAPRICOT = createImage("/apricotrl/tiles/apricot_1.png", 16)
+const RIPEAPRICOT = createImage("/apricotrl/tiles/apricot_2.png", 16)
+const ROTTENAPRICOT = createImage("/apricotrl/tiles/apricot_3.png", 16)
+const TOMBSTONE = createImage("/apricotrl/tiles/tombstone.png", 16)
+const APRICOTPLANTBARE = createImage("/apricotrl/tiles/apricottree1.png", 16) //TODO: need to make actual sprite for this
+const APRICOTPLANTUNRIPE = createImage("/apricotrl/tiles/apricottree1.png", 16)
+const APRICOTPLANTRIPE = createImage("/apricotrl/tiles/apricottree2.png", 16)
+const APRICOTPLANTROTTEN = createImage("/apricotrl/tiles/apricottree3.png", 16)
+//initializing variables
+let cooldown = 0;
+let currentTime = 0;
+//timer here since controls pretty much "controls" it
+const timer = advance => {
+    if (advance) {
+        currentTime += 1;
+        if(currentTime % 10 == 0) {
+            growPlants();
+        }
+        zach.hunger -= 1;
+        if(zach.hunger < 1) {
+            killZach();
+        }
+        render();
+    }
+}
+//controls
+let keys = []; //keeps track of currently pressed keys
+const controls = () => {
+    const left = zach.x-1;
+    const right = zach.x+1;
+    const up = zach.y-1;
+    const down = zach.y+1;
+    const currentX = zach.x;
+    const currentY = zach.y;
+    incrementTimer = false;
+    if (zach.alive) {
+        if (keys["l"]||keys[6]){
+            moveZach(right, currentY);
+        }
+        if (keys["h"]||keys[4]){
+            moveZach(left, currentY);
+        }
+        if (keys["k"]||keys[8]) {
+            moveZach(currentX, up);
+        }
+        if (keys["j"]||keys[2]) {
+            moveZach(currentX, down);
+            }
+        if (keys["y"]||keys[7]) {
+            moveZach(left, up);
+        }
+        if (keys["u"]||keys[9]) {
+            moveZach(right, up);
+        }
+        if (keys["b"]||keys[1]) {
+            moveZach(left, down);
+        }
+        if (keys["n"]||keys[3]) {
+            moveZach(right, down);
+        }
+        if (keys[" "]) {
+            useFloorObject();
+        }
+        if (keys["p"]) {
+            pickApricot();
+        }
+        if (keys["g"]) {
+            getFloorObject();
+        }
+        if (keys["d"]) {
+            dropItem(apricot);
+        }
+        if (keys["e"]) {
+            eatHeldApricot();
+        }
+    }
+    timer(incrementTimer);
+}
+
 function collisionCheck(x, y) {
     for (let index = 0; index < sceneWalls.length; index++) {
         let object = sceneWalls[index];
@@ -93,19 +158,6 @@ function killZach() {
     zach.sprite=TOMBSTONE;
     zach.alive=0;
 }
-function timer(advance) {
-    if (advance) {
-        currentTime += 1;
-        if(currentTime % 10 == 0) {
-            growPlants();
-        }
-        zach.hunger -= 1;
-        if(zach.hunger < 1) {
-            killZach();
-        }
-        render();
-    }
-}
 //player input
 function useFloorObject() {
     for (let index = 0; index < scenePlants.length; index++) {
@@ -115,14 +167,13 @@ function useFloorObject() {
             if (plant.ripeness == 1) {
                 zach.hunger += 11;
             } // needs to be before ripeness change to work i think
-            plant.sprite = APRICOTPLANTBARE;
-            plant.ripeness = -1;
+            resetPlant();
             incrementTimer=true;
         }
         
     }
 }
-function getFloorObject() {
+function getFloorObject() { //currently just picks apricot to add to stash, need to fix that once more items are implemented
     for (let index = 0; index < scenePlants.length; index++) {
         const item = scenePlants[index];
         if (item.x == zach.x && item.y == zach.y && item.ripeness == 1) {
@@ -134,6 +185,25 @@ function getFloorObject() {
         
     }
 }
+//we'll look at this again later, not super happy with how it works
+//lazily having this as seperate function, to make it part of picking up floor items just have it check plant array for a tree at current location with case statement or some shit
+const pickApricot = () => {
+    for (let index = 0; index < scenePlants.length; index++) {
+        const plant = scenePlants[index];
+        if (plant.x == zach.x && plant.y == zach.y && plant.ripeness == 1) {
+            resetPlant();
+            for (let index = 0; index < playerItems.length; index++) {
+                const item = playerItems[index];
+                if (item.name = 'apricot') {
+                    item.quantity += 1
+                    return;
+                }
+            }
+            playerItems.push({...apricot});
+        }
+    }
+}
+
 function eatHeldApricot() {
     if (zach.apricotStash > 0 && zach.alive) {
         zach.apricotStash -= 1;
@@ -141,77 +211,34 @@ function eatHeldApricot() {
         incrementTimer=true;
     }
 }
-function dropApricot() {
-
+function dropItem(item) {
+    for (let index = 0; index < playerItems.length; index++) {
+        const playerItem = playerItems[index];
+        if (playerItem.name == item.name) {
+            let droppedItem = {...playerItems[index]};
+            droppedItem.x = zach.x;
+            droppedItem.y = zach.y;
+            droppedItem.quantity = 1;
+            sceneItems.push(droppedItem);
+            playerItems[index].quantity -= 1;
+            console.log(playerItem.quantity);
+            if (playerItem.quantity < 1) {
+                playerItems.splice(index, 1);
+            }
+        }
+        
+    }
 }
 function resetPlant() {
     for (let index = 0; index < scenePlants.length; index++) {
         const plant = scenePlants[index];
         if (plant.x == zach.x && plant.y == zach.y) {
-
+            plant.sprite = APRICOTPLANTBARE;
+            plant.ripeness = -1;
         }
         
     }
 }
-function controls() {
-    const left = zach.x-1;
-    const right = zach.x+1;
-    const up = zach.y-1;
-    const down = zach.y+1;
-    const currentX = zach.x;
-    const currentY = zach.y;
-    incrementTimer = false;
-    if (zach.alive) {
-        if (keys["l"]||keys[6]){
-            moveZach(right, currentY);
-        }
-        if (keys["h"]||keys[4]){
-            moveZach(left, currentY);
-        }
-        if (keys["k"]||keys[8]) {
-            moveZach(currentX, up);
-        }
-        if (keys["j"]||keys[2]) {
-            moveZach(currentX, down);
-            }
-        if (keys["y"]||keys[7]) {
-            moveZach(left, up);
-        }
-        if (keys["u"]||keys[9]) {
-            moveZach(right, up);
-        }
-        if (keys["b"]||keys[1]) {
-            moveZach(left, down);
-        }
-        if (keys["n"]||keys[3]) {
-            moveZach(right, down);
-        }
-        if (keys[" "]) {
-            useFloorObject();
-        }
-        if (keys["g"]) {
-            getFloorObject();
-        }
-        if (keys["e"]) {
-            eatHeldApricot();
-        }
-        if (keys["d"]) {
-            dropApricot();
-        }
-    }
-    timer(incrementTimer);
-    /*
-    switch(moveString){
-        case "0":
-
-        break;
-        case "01":
-
-        break;
-    }
-    */
-}
-
 document.body.onkeydown = function(e){
     keys[e.key]=true;
     clearTimeout(cooldown);
@@ -228,6 +255,7 @@ document.body.onkeyup = function(e){
 //but is that what i want?
 function wallConstructor(x, y) {
     let wall = {
+        name : 'wall',
         sprite: WALL,
         x : x,
         y : y,
@@ -236,6 +264,7 @@ function wallConstructor(x, y) {
 }
 function apricotOrchard(x, y) {
     let apricotTree = {
+        name : 'apricotTree',
         sprite: APRICOTPLANTBARE,
         ripeness : -1,
         x : x,
@@ -246,6 +275,7 @@ function apricotOrchard(x, y) {
 //STATIC IMMUTABLE OBJECTS DECLARED WITH BOILERPLATE FUCKING EWWW BRO
 //I BET YOU PLAY HOGWARTS LEGACY TOO
 let zach = {
+    name : 'zach',
     sprite : ZACHFACE,
     apricotStash : 0,
     hunger : 100,
@@ -253,7 +283,14 @@ let zach = {
     x : WIDTH/2,
     y : 1,
 }
-
+//will eventually add support for picking up underipe and rotten apricots too
+let apricot = {
+    name : 'apricot',
+    sprite : RIPEAPRICOT,
+    type : 'food',
+    nourishment : 10,
+    quantity : 1,
+}
 /* MAIN CONSTRUCTION
 drawing map, spawning Zach, also other objects i need to implement */
 
@@ -278,6 +315,5 @@ function lushApricotFields() {
 borderWall();
 lushApricotFields();
 scenePlayer.push(zach);
-//for some reason this render call doesn't properly load sprites if they aren't cached
-//is it running too fast for all the images to finish constructing or something?
-render();
+//hey check out my sex toys youtube bros10function ingYourMo600600600)
+setTimeout(render, 1000)
