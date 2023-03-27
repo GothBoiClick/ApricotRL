@@ -16,6 +16,21 @@ let scenePlayer = [];
 let sceneWalls = [];
 //not sure were to put this yet, but since it's in array I'll just do with the others
 let playerItems = [];
+//crypto prices
+let gncPrice = 50 + Math.random()*50;
+let bitConnectPrice = 200 + Math.random()*100;
+let bitCloutPrice = 100 + Math.random()*50;
+let dakotaCoinPrice = 150 + Math.random()*100;
+const updateCrypto = () => {
+    gncPrice += (Math.random()*5) - 1;
+    bitConnectPrice += (Math.random()*20) - 15;
+    bitCloutPrice += (Math.random()*10) - 6;
+    dakotaCoinPrice += (Math.random()*15) - 5;
+    console.log(gncPrice);
+    console.log(bitConnectPrice);
+    console.log(bitCloutPrice);
+    console.log(dakotaCoinPrice);
+}
 const render = () => {
     const drawSprites = array =>{
         for (let index = 0; index < array.length; index++) {
@@ -34,21 +49,30 @@ const render = () => {
     
 }
 //sprite aliases
+let spriteLoadCounter = 0;
+let numberOfSprites = 0;
 const createImage = (url, size) => {
+    numberOfSprites += 1;
     let image = new Image(size, size);
     image.src = url;
+    image.onload = () => {
+        spriteLoadCounter += 1;
+        if (spriteLoadCounter == numberOfSprites) {
+            render();
+        }
+    }
     return image;
 }
 const ZACHFACE = createImage("/apricotrl/tiles/zach.png", 16);
 const WALL = createImage("/apricotrl/tiles/shittywall.png", 16);
-const UNRIPEAPRICOT = createImage("/apricotrl/tiles/apricot_1.png", 16)
-const RIPEAPRICOT = createImage("/apricotrl/tiles/apricot_2.png", 16)
-const ROTTENAPRICOT = createImage("/apricotrl/tiles/apricot_3.png", 16)
-const TOMBSTONE = createImage("/apricotrl/tiles/tombstone.png", 16)
-const APRICOTPLANTBARE = createImage("/apricotrl/tiles/apricottree1.png", 16) //TODO: need to make actual sprite for this
-const APRICOTPLANTUNRIPE = createImage("/apricotrl/tiles/apricottree1.png", 16)
-const APRICOTPLANTRIPE = createImage("/apricotrl/tiles/apricottree2.png", 16)
-const APRICOTPLANTROTTEN = createImage("/apricotrl/tiles/apricottree3.png", 16)
+const UNRIPEAPRICOT = createImage("/apricotrl/tiles/apricot_1.png", 16);
+const RIPEAPRICOT = createImage("/apricotrl/tiles/apricot_2.png", 16);
+const ROTTENAPRICOT = createImage("/apricotrl/tiles/apricot_3.png", 16);
+const TOMBSTONE = createImage("/apricotrl/tiles/tombstone.png", 16);
+const APRICOTPLANTBARE = createImage("/apricotrl/tiles/apricottree1.png", 16); //TODO: need to make actual sprite for this
+const APRICOTPLANTUNRIPE = createImage("/apricotrl/tiles/apricottree1.png", 16);
+const APRICOTPLANTRIPE = createImage("/apricotrl/tiles/apricottree2.png", 16);
+const APRICOTPLANTROTTEN = createImage("/apricotrl/tiles/apricottree3.png", 16);
 //initializing variables
 let cooldown = 0;
 let currentTime = 0;
@@ -58,6 +82,9 @@ const timer = advance => {
         currentTime += 1;
         if(currentTime % 10 == 0) {
             growPlants();
+        }
+        if(currentTime % 100 == 0) {
+            updateCrypto();
         }
         zach.hunger -= 1;
         if(zach.hunger < 1) {
@@ -308,4 +335,3 @@ borderWall();
 lushApricotFields();
 scenePlayer.push(zach);
 //hey check out my sex toys youtube bros10function ingYourMo600600600)
-setTimeout(render, 1000)
