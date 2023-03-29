@@ -8,14 +8,110 @@ const SCENEWIDTH = WIDTH*16;
 const SCENEHEIGHT = HEIGHT*16;
 canvas.width = SCENEWIDTH;
 canvas.height = SCENEHEIGHT;
-//rendering function
-//arrays needed for it first
+
+//sprites
+let spriteLoadCounter = 0;
+let numberOfSprites = 0;
+const createImage = (url, size) => {
+    numberOfSprites += 1;
+    let image = new Image(size, size);
+    image.src = url;
+    image.onload = () => {
+        spriteLoadCounter += 1;
+        if (spriteLoadCounter == numberOfSprites) {
+            render();
+        }
+    }
+    return image;
+}
+const ZACHFACE = createImage("/apricotrl/tiles/zach.png", 16);
+const WALL = createImage("/apricotrl/tiles/shittywall.png", 16);
+const UNRIPEAPRICOT = createImage("/apricotrl/tiles/apricot_1.png", 16);
+const RIPEAPRICOT = createImage("/apricotrl/tiles/apricot_2.png", 16);
+const ROTTENAPRICOT = createImage("/apricotrl/tiles/apricot_3.png", 16);
+const TOMBSTONE = createImage("/apricotrl/tiles/tombstone.png", 16);
+const APRICOTPLANTBARE = createImage("/apricotrl/tiles/apricottree1.png", 16); //TODO: need to make actual sprite for this
+const APRICOTPLANTUNRIPE = createImage("/apricotrl/tiles/apricottree1.png", 16);
+const APRICOTPLANTRIPE = createImage("/apricotrl/tiles/apricottree2.png", 16);
+const APRICOTPLANTROTTEN = createImage("/apricotrl/tiles/apricottree3.png", 16);
+
+//arrays
 let sceneItems = [];
 let scenePlants = [];
 let scenePlayer = [];
 let sceneWalls = [];
-//not sure were to put this yet, but since it's in array I'll just do with the others
-let playerItems = [];
+let playerItems = []; //currently global array, more sense to have it be constructed as a property of the Actor object
+
+//classes
+
+//is this even needed? it's just two fields
+class ThingBlueprint {
+    constructor(name, sprite) {
+        this.name = name;
+        this.sprite = sprite;
+    }
+}
+class Actor extends ThingBlueprint {
+    constructor(name, sprite, x, y) {
+        super(name, sprite);
+        this.hunger = 100;
+        this.alive = true;
+        this.x = x;
+        this.y = y;
+    }
+    moveActor(newX, newY) {
+        if (!collisionCheck(newX, newY)) {
+            this.x = newX
+            this.y = newY
+            //return true or false depending on success to set timer if Zach moves
+            return true;
+        }
+        return false;
+    }
+    killActor() {
+        this.sprite=TOMBSTONE;
+        this.alive=0;
+    }
+}
+//no need to make this an extension of ThingBlueprint now, later might be useful to so i can easily fit in other building tiles or something? but even then its not very useful
+class Wall {
+    constructor(sprite, x, y) {
+        this.name = 'wall';
+        this.sprite = sprite;
+        this.x = x;
+        this.y = y;
+        sceneWalls.push(this);
+    }
+}
+//
+class Plant extends ThingBlueprint{
+    constructor(name, sprite, x, y) {
+        super(name, sprite);
+        this.ripeness = -1;
+        this.x = x;
+        this.y = y;
+        scenePlants.push(this);
+    }
+    advanceGrowth() { //make this generic when weed is implemented
+        if (this.ripeness < 0 && 0.1 > Math.random()) {
+            this.sprite == APRICOTPLANTUNRIPE;
+            this.ripeness += 1;
+        }
+        if (this.ripeness == 0 && 0.05 > Math.random()) {
+            this.sprite = APRICOTPLANTRIPE;
+            this.ripeness += 1;
+        }
+        if (this.ripeness == 1 && 0.01 > Math.random()) {
+            this.sprite = APRICOTPLANTROTTEN;
+            this.ripeness += 1;
+        }
+    }
+    resetGrowth() {
+        this.sprite = APRICOTPLANTBARE;
+        this.ripeness = -1;
+    }
+}
+let zach = new Actor('zach', ZACHFACE, WIDTH/2, 1);
 //crypto prices
 let gncPrice = 50 + Math.random()*50;
 let bitConnectPrice = 200 + Math.random()*100;
@@ -45,34 +141,17 @@ const render = () => {
     
 }
 //sprite aliases
-let spriteLoadCounter = 0;
-let numberOfSprites = 0;
-const createImage = (url, size) => {
-    numberOfSprites += 1;
-    let image = new Image(size, size);
-    image.src = url;
-    image.onload = () => {
-        spriteLoadCounter += 1;
-        if (spriteLoadCounter == numberOfSprites) {
-            render();
-        }
-    }
-    return image;
-}
-const ZACHFACE = createImage("/apricotrl/tiles/zach.png", 16);
-const WALL = createImage("/apricotrl/tiles/shittywall.png", 16);
-const UNRIPEAPRICOT = createImage("/apricotrl/tiles/apricot_1.png", 16);
-const RIPEAPRICOT = createImage("/apricotrl/tiles/apricot_2.png", 16);
-const ROTTENAPRICOT = createImage("/apricotrl/tiles/apricot_3.png", 16);
-const TOMBSTONE = createImage("/apricotrl/tiles/tombstone.png", 16);
-const APRICOTPLANTBARE = createImage("/apricotrl/tiles/apricottree1.png", 16); //TODO: need to make actual sprite for this
-const APRICOTPLANTUNRIPE = createImage("/apricotrl/tiles/apricottree1.png", 16);
-const APRICOTPLANTRIPE = createImage("/apricotrl/tiles/apricottree2.png", 16);
-const APRICOTPLANTROTTEN = createImage("/apricotrl/tiles/apricottree3.png", 16);
 //initializing variables
 let cooldown = 0;
 let currentTime = 0;
 //timer here since controls pretty much "controls" it
+const growPlants = () => {
+    for (let index = 0; index < scenePlants.length; index++) {
+        const plant = scenePlants[index];
+        plant.advanceGrowth();
+        
+    }
+}
 const timer = advance => {
     if (advance) {
         currentTime += 1;
@@ -85,7 +164,7 @@ const timer = advance => {
         zach.hunger -= 1;
         (zach.hunger < 11 && zach.hunger > 0) ? console.log('eat something quick!') : 1+1;
         if(zach.hunger < 1) {
-            killZach();
+            zach.killActor();
             console.log('uh oh, you fucking starved to death!')
         }
         render();
@@ -103,28 +182,28 @@ const controls = () => {
     incrementTimer = false;
     if (zach.alive) {
         if (keys["l"]||keys[6]){
-            moveZach(right, currentY);
+            zach.moveActor(right, currentY) ? incrementTimer = true : incrementTimer = false;
         }
         if (keys["h"]||keys[4]){
-            moveZach(left, currentY);
+            zach.moveActor(left, currentY) ? incrementTimer = true : incrementTimer = false;
         }
         if (keys["k"]||keys[8]) {
-            moveZach(currentX, up);
+            zach.moveActor(currentX, up) ? incrementTimer = true : incrementTimer = false;
         }
         if (keys["j"]||keys[2]) {
-            moveZach(currentX, down);
+            zach.moveActor(currentX, down) ? incrementTimer = true : incrementTimer = false;
             }
         if (keys["y"]||keys[7]) {
-            moveZach(left, up);
+            zach.moveActor(left, up) ? incrementTimer = true : incrementTimer = false;
         }
         if (keys["u"]||keys[9]) {
-            moveZach(right, up);
+            zach.moveActor(right, up) ? incrementTimer = true : incrementTimer = false;
         }
         if (keys["b"]||keys[1]) {
-            moveZach(left, down);
+            zach.moveActor(left, down) ? incrementTimer = true : incrementTimer = false;
         }
         if (keys["n"]||keys[3]) {
-            moveZach(right, down);
+            zach.moveActor(right, down) ? incrementTimer = true : incrementTimer = false;
         }
         if (keys[" "]) {
             useApricotPlant();
@@ -155,35 +234,7 @@ function collisionCheck(x, y) {
     }
     return false; //needed?
 }
-function moveZach(newX, newY) {
-    if (!collisionCheck(newX, newY)) {
-        zach.x = newX
-        zach.y = newY
-        incrementTimer=true
-    }
-}
-function growPlants() {
-    for (let index = 0; index < scenePlants.length; index++) {
-        const plant = scenePlants[index];
-        if (plant.ripeness < 0 && 0.1 > Math.random()) {
-            plant.sprite == APRICOTPLANTUNRIPE;
-            plant.ripeness += 1;
-        }
-        if (plant.ripeness == 0 && 0.05 > Math.random()) {
-            plant.sprite = APRICOTPLANTRIPE;
-            plant.ripeness += 1;
-        }
-        if (plant.ripeness == 1 && 0.01 > Math.random()) {
-            plant.sprite = APRICOTPLANTROTTEN;
-            plant.ripeness += 1;
-        }
-        
-    }
-}
-function killZach() {
-    zach.sprite=TOMBSTONE;
-    zach.alive=0;
-}
+
 //player input
 function useApricotPlant() {
     for (let index = 0; index < scenePlants.length; index++) {
@@ -193,7 +244,7 @@ function useApricotPlant() {
             if (plant.ripeness == 1) {
                 zach.hunger += 11;
             } // needs to be before ripeness change to work i think
-            resetPlant();
+            plant.resetGrowth();
             incrementTimer=true;
         }
     }
@@ -277,16 +328,6 @@ function dropItem(item) {
         
     }
 }
-function resetPlant() {
-    for (let index = 0; index < scenePlants.length; index++) {
-        const plant = scenePlants[index];
-        if (plant.x == zach.x && plant.y == zach.y) {
-            plant.sprite = APRICOTPLANTBARE;
-            plant.ripeness = -1;
-        }
-        
-    }
-}
 document.body.onkeydown = function(e){
     keys[e.key]=true;
     clearTimeout(cooldown);
@@ -301,35 +342,6 @@ document.body.onkeyup = function(e){
 //TODO: generic constructor that creates objects globally
 // Sebs says it gets pushed to array and can scan through array for object info
 //but is that what i want?
-const wallConstructor = (x, y) => {
-    let wall = {
-        name : 'wall',
-        sprite: WALL,
-        x : x,
-        y : y,
-    }
-    sceneWalls.push(wall);
-}
-const apricotOrchard = (x, y) => {
-    let apricotTree = {
-        name : 'apricotTree',
-        sprite: APRICOTPLANTBARE,
-        ripeness : -1,
-        x : x,
-        y : y,
-    }
-    scenePlants.push(apricotTree);
-}
-//STATIC IMMUTABLE OBJECTS DECLARED WITH BOILERPLATE FUCKING EWWW BRO
-//I BET YOU PLAY HOGWARTS LEGACY TOO
-let zach = {
-    name : 'zach',
-    sprite : ZACHFACE,
-    hunger : 100,
-    alive : true,
-    x : WIDTH/2,
-    y : 1,
-}
 //will eventually add support for picking up underipe and rotten apricots too
 let apricot = {
     name : 'apricot',
@@ -344,18 +356,18 @@ drawing map, spawning Zach, also other objects i need to implement */
 //constructs walls, right now just a border around edges
 function borderWall() {
     for (let index = 0; index < WIDTH; index++) {
-        wallConstructor(index, 0);
-        wallConstructor(index, HEIGHT-1);
+        new Wall(WALL, index, 0);
+        new Wall(WALL, index, HEIGHT-1);
     }
     for (let index = 0; index < HEIGHT; index++) {
-        wallConstructor(0, index);
-        wallConstructor(WIDTH-1, index);
+        new Wall(WALL, 0, index);
+        new Wall(WALL, WIDTH-1, index);
     }
 }
 function lushApricotFields() {
     for (let x = WIDTH/4; x < (WIDTH/2); x++) {
         for(let y = 2; y < HEIGHT-2; y++) {
-            apricotOrchard(x*2-1, y)
+            new Plant('apricotTree', APRICOTPLANTUNRIPE, x*2-1, y)
         }
     }
 }
