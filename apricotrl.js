@@ -26,10 +26,6 @@ const updateCrypto = () => {
     bitConnectPrice += (Math.random()*20) - 15;
     bitCloutPrice += (Math.random()*10) - 6;
     dakotaCoinPrice += (Math.random()*15) - 5;
-    console.log(gncPrice);
-    console.log(bitConnectPrice);
-    console.log(bitCloutPrice);
-    console.log(dakotaCoinPrice);
 }
 const render = () => {
     const drawSprites = array =>{
@@ -87,8 +83,10 @@ const timer = advance => {
             updateCrypto();
         }
         zach.hunger -= 1;
+        (zach.hunger < 11 && zach.hunger > 0) ? console.log('eat something quick!') : 1+1;
         if(zach.hunger < 1) {
             killZach();
+            console.log('uh oh, you fucking starved to death!')
         }
         render();
     }
@@ -129,7 +127,7 @@ const controls = () => {
             moveZach(right, down);
         }
         if (keys[" "]) {
-            useFloorObject();
+            useApricotPlant();
         }
         if (keys["p"]) {
             pickApricot();
@@ -141,8 +139,9 @@ const controls = () => {
             dropItem(apricot);
         }
         if (keys["e"]) {
-            eatHeldApricot();
-        }
+            eatFood(apricot) ? console.log("MY GOD, IT'S SO JUICY!") :
+            console.log('out of apricots!');
+            }
     }
     timer(incrementTimer);
 }
@@ -186,7 +185,7 @@ function killZach() {
     zach.alive=0;
 }
 //player input
-function useFloorObject() {
+function useApricotPlant() {
     for (let index = 0; index < scenePlants.length; index++) {
         const plant = scenePlants[index];
         //would break if it was weed instead of apricot, seperate check within loop for which one it is
@@ -197,18 +196,36 @@ function useFloorObject() {
             resetPlant();
             incrementTimer=true;
         }
-        
     }
 }
 function getFloorItem() {
     for (let index = 0; index < sceneItems.length; index++) {
         const floorItem = sceneItems[index];
+        let inInventory = false;
         if (floorItem.x == zach.x && floorItem.y == zach.y) {
-
+            for (let index = 0; index < playerItems.length; index++) {
+                const inventoryItem = playerItems[index];
+                if (inventoryItem.name = floorItem.name) {
+                    inventoryItem.quantity += 1;
+                    inInventory = true;
+                }
+            }
+            if (!inInventory)  {
+                playerItems.push(floorItem);
+            }
+            sceneItems.splice(index, 1);
         }
     }
 }
-
+function inInventory(item) {
+    for (let index = 0; index < playerItems.length; index++) {
+        const inventoryItem = playerItems[index];
+        if (inventoryItem.name = item) {
+            return true;
+        } 
+    }
+    return false;
+}
 //we'll look at this again later, not super happy with how it works
 //lazily having this as seperate function, to make it part of picking up floor items just have it check plant array for a tree at current location with case statement or some shit
 const pickApricot = () => {
@@ -228,8 +245,20 @@ const pickApricot = () => {
     }
 }
 
-function eatHeldApricot() {
-
+function eatFood(type) {
+    for (let index = 0; index < playerItems.length; index++) {
+        let item = playerItems[index];
+        if (item.name == type.name) {
+            item.quantity -= 1;
+            zach.hunger += 11;
+            if (item.quantity < 1) {
+                playerItems.splice(index, 1);
+            }
+            incrementTimer = true;
+            return true;
+        }
+    }
+    return false;
 }
 function dropItem(item) {
     for (let index = 0; index < playerItems.length; index++) {
@@ -272,7 +301,7 @@ document.body.onkeyup = function(e){
 //TODO: generic constructor that creates objects globally
 // Sebs says it gets pushed to array and can scan through array for object info
 //but is that what i want?
-function wallConstructor(x, y) {
+const wallConstructor = (x, y) => {
     let wall = {
         name : 'wall',
         sprite: WALL,
@@ -281,7 +310,7 @@ function wallConstructor(x, y) {
     }
     sceneWalls.push(wall);
 }
-function apricotOrchard(x, y) {
+const apricotOrchard = (x, y) => {
     let apricotTree = {
         name : 'apricotTree',
         sprite: APRICOTPLANTBARE,
@@ -296,7 +325,6 @@ function apricotOrchard(x, y) {
 let zach = {
     name : 'zach',
     sprite : ZACHFACE,
-    apricotStash : 0,
     hunger : 100,
     alive : true,
     x : WIDTH/2,
